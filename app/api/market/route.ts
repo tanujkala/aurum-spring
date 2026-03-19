@@ -31,25 +31,18 @@ async function fetchGold(): Promise<number> {
   return Math.round(json.price * 100) / 100;
 }
 
-async function fetchYieldHistory(): Promise<number[]> {
-  const url = [
-    "https://api.stlouisfed.org/fred/series/observations",
-    `?series_id=DFII10`,
-    `&api_key=${FRED_API_KEY}`,
-    `&file_type=json`,
-    `&sort_order=desc`,
-    `&limit=30`,
-  ].join("");
+async function fetchFredHistory(seriesId: string, limit: number = 30): Promise<number[]> {
+  const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=${limit}`;
 
   const res = await fetch(url, { next: { revalidate: 0 } });
-  if (!res.ok) throw new Error(`FRED HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`FRED HTTP ${res.status} for ${seriesId}`);
   const json = await res.json();
   const values = json.observations
     ?.filter((o: { value: string }) => o.value !== ".")
     .map((o: { value: string }) => Math.round(parseFloat(o.value) * 100) / 100)
     .reverse(); // Back to chronological order
   
-  if (!values || values.length === 0) throw new Error("FRED: no valid observations");
+  if (!values || values.length === 0) throw new Error(`FRED: no valid observations for ${seriesId}`);
   return values;
 }
 
@@ -85,9 +78,9 @@ export async function GET() {
     dxyHistResult
   ] = await Promise.allSettled([
     fetchGold(),
-    fetchYieldHistory(),
+    fetchFredHistory("DFII10", 30),
     fetchTwelveDataHistory("XAU/USD", 90),
-    fetchTwelveDataHistory("DXY", 90),
+    fetchFredHistory("DTWEXAFEGS", 90), // FRED substitute for DXY
   ]);
 
   const goldPrice = goldSpotResult.status === "fulfilled" ? goldSpotResult.value : cache?.goldPrice ?? 4671.8;
