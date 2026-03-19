@@ -37,7 +37,7 @@ console.log("Zone:", res2.currentGoldZone);
 console.log("State:", res2.state);
 
 console.log("\n--- TEST 3: MANUAL MODE ---");
-const manualSettings = { ...settings, goldZoneMode: "Manual" as const, goldStarterLower: 4680, goldStarterUpper: 4725 };
+const manualSettings = { ...settings, goldZoneMode: "MANUAL" as const, goldStarterLower: 4680, goldStarterUpper: 4725 };
 const currentData3: MarketData = {
   timestamp: new Date().toISOString(),
   goldPrice: 4700, // Inside Manual Starter Buy

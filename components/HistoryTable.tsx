@@ -15,11 +15,11 @@ export function HistoryTable({ history }: HistoryTableProps) {
           <tr>
             <th>Time</th>
             <th>Gold</th>
-            <th>High</th>
+            <th className="hide-mobile">High</th>
             <th>DD%</th>
-            <th>Zone</th>
-            <th>Source</th>
-            <th>Macro Score</th>
+            <th className="hide-mobile">Zone</th>
+            <th className="hide-mobile">Source</th>
+            <th>Score</th>
             <th>Reason</th>
           </tr>
         </thead>
@@ -27,16 +27,16 @@ export function HistoryTable({ history }: HistoryTableProps) {
           {history.map((entry, idx) => (
             <tr key={idx}>
               <td>{entry.timestamp}</td>
-              <td>${entry.goldPrice.toFixed(2)}</td>
-              <td>{entry.recentHigh ? `$${entry.recentHigh.toFixed(0)}` : "—"}</td>
+              <td>${entry.goldPrice.toFixed(0)}</td>
+              <td className="hide-mobile">{entry.recentHigh ? `$${entry.recentHigh.toFixed(0)}` : "—"}</td>
               <td>
                 <span style={{ color: (entry.drawdownPct || 0) > 5 ? "var(--accent-red)" : "inherit" }}>
                   {entry.drawdownPct ? `${entry.drawdownPct.toFixed(1)}%` : "—"}
                 </span>
               </td>
-              <td style={{ fontSize: "0.7rem", fontWeight: 600 }}>{entry.goldZone || "—"}</td>
-              <td><span className="mode-pill">{entry.zoneSource || "Auto"}</span></td>
-              <td><strong>{entry.compositeScore?.toFixed(1) || "N/A"}</strong></td>
+              <td className="hide-mobile" style={{ fontSize: "0.7rem", fontWeight: 600 }}>{entry.goldZone || "—"}</td>
+              <td className="hide-mobile"><span className="mode-pill">{entry.zoneSource || "Auto"}</span></td>
+              <td><strong>{entry.compositeScore?.toFixed(0) || "N/A"}</strong></td>
               <td className="reason-cell">
                 <div className="reason-text-truncate">{entry.reason}</div>
                 <div className="reason-tooltip">

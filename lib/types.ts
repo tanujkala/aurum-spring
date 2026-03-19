@@ -16,7 +16,7 @@ export interface MarketResponse extends MarketData {
 }
 
 export type AppState = "WAIT" | "STARTER BUY" | "ADD" | "AGGRESSIVE ADD" | "DO NOT BUY";
-export type GoldZoneMode = "Auto" | "Manual";
+export type GoldZoneMode = "AUTO" | "MANUAL";
 export type VolatilityStrength = "low" | "medium" | "high";
 
 export interface EvaluationResult {
@@ -92,7 +92,7 @@ export interface ThresholdSettings {
 }
 
 export const defaultSettings: ThresholdSettings = {
-  goldZoneMode: "Auto",
+  goldZoneMode: "AUTO",
   
   // Auto defaults
   swingHighLookback: 60,

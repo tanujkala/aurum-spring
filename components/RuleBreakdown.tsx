@@ -31,16 +31,25 @@ export function RuleBreakdown({ evaluation }: RuleBreakdownProps) {
   ];
 
   return (
-    <div className="rules-card">
+    <div className={`rules-card mode-${zoneSource.toLowerCase()}`}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
         <h3 style={{ margin: 0 }}>Macro Score Contribution</h3>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.2rem" }}>
-          <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", background: "rgba(255,255,255,0.05)", padding: "0.1rem 0.4rem", borderRadius: "4px" }}>
-              Recent High: ${evaluation.recentHigh.toFixed(0)}
-          </div>
-          <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", background: "rgba(255,255,255,0.05)", padding: "0.1rem 0.4rem", borderRadius: "4px" }}>
-              Drawdown: {drawdownPct.toFixed(1)}%
-          </div>
+          {zoneSource === "AUTO" && (
+            <>
+              <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", background: "rgba(255,255,255,0.05)", padding: "0.1rem 0.4rem", borderRadius: "4px" }}>
+                  Recent High: ${evaluation.recentHigh.toFixed(0)}
+              </div>
+              <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", background: "rgba(255,255,255,0.05)", padding: "0.1rem 0.4rem", borderRadius: "4px" }}>
+                  Drawdown: {drawdownPct.toFixed(1)}%
+              </div>
+            </>
+          )}
+          {zoneSource === "MANUAL" && (
+            <div style={{ fontSize: "0.6rem", fontWeight: 700, color: "#fbbf24", background: "rgba(245, 158, 11, 0.1)", padding: "0.1rem 0.4rem", borderRadius: "4px", border: "1px solid rgba(245, 158, 11, 0.2)" }}>
+              MANUAL OVERRIDE ACTIVE
+            </div>
+          )}
         </div>
       </div>
       
@@ -61,14 +70,27 @@ export function RuleBreakdown({ evaluation }: RuleBreakdownProps) {
         </div>
       ))}
       
-      {/* Dynamic Zone Boundaries */}
+      {/* Zone Boundaries */}
       <div className="zone-boundaries" style={{ marginTop: "1rem", padding: "0.75rem", background: "rgba(0,0,0,0.2)", borderRadius: "8px", fontSize: "0.7rem" }}>
-        <div style={{ color: "var(--text-muted)", marginBottom: "0.4rem", textTransform: "uppercase", letterSpacing: "0.05em", fontSize: "0.6rem" }}>Dynamic Gold Zones</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.4rem" }}>
-          <div>Early Support:</div> <div style={{ textAlign: "right", color: "var(--gold-dim)" }}>${evaluation.dynamicZones.earlySupport[1].toFixed(0)} – ${evaluation.dynamicZones.earlySupport[0].toFixed(0)}</div>
-          <div>Starter Buy:</div> <div style={{ textAlign: "right", color: "var(--gold-dim)" }}>${evaluation.dynamicZones.starterBuy[1].toFixed(0)} – ${evaluation.dynamicZones.starterBuy[0].toFixed(0)}</div>
-          <div>Aggressive Add:</div> <div style={{ textAlign: "right", color: "var(--gold-dim)" }}>${evaluation.dynamicZones.aggressiveAdd[1].toFixed(0)} – ${evaluation.dynamicZones.aggressiveAdd[0].toFixed(0)}</div>
-          <div>Panic Threshold:</div> <div style={{ textAlign: "right", color: "rgba(239, 68, 68, 0.8)" }}>&lt; ${evaluation.dynamicZones.panicThreshold.toFixed(0)}</div>
+        <div style={{ color: "var(--text-muted)", marginBottom: "0.4rem", textTransform: "uppercase", letterSpacing: "0.05em", fontSize: "0.6rem" }}>
+          {zoneSource === "AUTO" ? "Dynamic Gold Zones" : "Manual Price Thresholds"}
+        </div>
+        <div className="gold-zone-details" style={{ padding: 0, background: "transparent", border: "none", marginTop: 0 }}>
+          {zoneSource === "AUTO" ? (
+            <>
+              <div>Early Support:</div> <div style={{ textAlign: "right", color: "var(--gold-dim)" }}>${evaluation.dynamicZones.earlySupport[1].toFixed(0)} – ${evaluation.dynamicZones.earlySupport[0].toFixed(0)}</div>
+              <div>Starter Buy:</div> <div style={{ textAlign: "right", color: "var(--gold-dim)" }}>${evaluation.dynamicZones.starterBuy[1].toFixed(0)} – ${evaluation.dynamicZones.starterBuy[0].toFixed(0)}</div>
+              <div>Aggressive Add:</div> <div style={{ textAlign: "right", color: "var(--gold-dim)" }}>${evaluation.dynamicZones.aggressiveAdd[1].toFixed(0)} – ${evaluation.dynamicZones.aggressiveAdd[0].toFixed(0)}</div>
+              <div>Panic Threshold:</div> <div style={{ textAlign: "right", color: "rgba(239, 68, 68, 0.8)" }}>&lt; ${evaluation.dynamicZones.panicThreshold.toFixed(0)}</div>
+            </>
+          ) : (
+            <>
+              <div>Starter Buy:</div> <div style={{ textAlign: "right", color: "#fbbf24" }}>${evaluation.adjustedConfig?.starterLower} – ${evaluation.adjustedConfig?.starterUpper}</div>
+              <div>Aggressive Add:</div> <div style={{ textAlign: "right", color: "#fbbf24" }}>${evaluation.adjustedConfig?.aggressiveLower} – ${evaluation.adjustedConfig?.aggressiveUpper}</div>
+              <div>Extended Abv:</div> <div style={{ textAlign: "right", color: "var(--text-muted)" }}>&gt; ${evaluation.adjustedConfig?.starterUpper}</div>
+              <div>Panic Below:</div> <div style={{ textAlign: "right", color: "rgba(239, 68, 68, 0.8)" }}>&lt; ${evaluation.adjustedConfig?.aggressiveLower}</div>
+            </>
+          )}
         </div>
       </div>
 

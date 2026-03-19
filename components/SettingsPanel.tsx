@@ -25,7 +25,7 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
   };
 
   return (
-    <div className="settings-section">
+    <div className={`settings-section ${formData.goldZoneMode === 'MANUAL' ? 'mode-manual' : 'mode-auto'}`}>
       <div className="settings-header">
         <h3>Settings & Architecture</h3>
         <div className="mode-selector">
@@ -34,16 +34,16 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
             value={formData.goldZoneMode} 
             onChange={(e) => handleChange("goldZoneMode", e.target.value as GoldZoneMode)}
           >
-            <option value="Auto">Auto (Dynamic)</option>
-            <option value="Manual">Manual (Override)</option>
+            <option value="AUTO">Auto (recommended)</option>
+            <option value="MANUAL">Manual (override)</option>
           </select>
         </div>
       </div>
 
       <div className="settings-container">
         {/* AUTO MODE SETTINGS */}
-        <div className={`settings-group-wrapper ${formData.goldZoneMode === 'Auto' ? 'active' : 'disabled'}`}>
-          <h4>Auto Mode Configuration</h4>
+        <div className={`settings-group-wrapper ${formData.goldZoneMode === 'AUTO' ? 'active' : 'disabled'}`}>
+          <h4 className="section-title">A. AUTO MODE SETTINGS</h4>
           <div className="settings-grid">
             <div className="setting-group">
               <label>Swing High Lookback</label>
@@ -52,6 +52,17 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
                 <option value={60}>60 Trading Days</option>
                 <option value={90}>90 Trading Days</option>
               </select>
+            </div>
+            <div className="setting-group">
+              <label>Volatility Adjustment</label>
+              <div className="checkbox-group">
+                <input type="checkbox" checked={formData.volatilityAdjustmentEnabled} onChange={(e) => handleChange("volatilityAdjustmentEnabled", e.target.checked)} />
+                <select value={formData.volatilityAdjustmentStrength} onChange={(e) => handleChange("volatilityAdjustmentStrength", e.target.value as VolatilityStrength)}>
+                  <option value="low">Low Sensitivity</option>
+                  <option value="medium">Medium Sensitivity</option>
+                  <option value="high">High Sensitivity</option>
+                </select>
+              </div>
             </div>
             <div className="setting-group">
               <label>Early Support (% Drawdown)</label>
@@ -77,30 +88,15 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
                 <input type="number" step="0.5" value={formData.aggressiveAddUpperPct} onChange={(e) => handleNumberChange("aggressiveAddUpperPct", e.target.value)} />
               </div>
             </div>
-            <div className="setting-group">
-              <label>Panic Threshold (%)</label>
-              <input type="number" step="0.5" value={formData.oversoldExtensionThresholdPct} onChange={(e) => handleNumberChange("oversoldExtensionThresholdPct", e.target.value)} />
-            </div>
-            <div className="setting-group">
-              <label>Volatility Adjustment</label>
-              <div className="checkbox-group">
-                <input type="checkbox" checked={formData.volatilityAdjustmentEnabled} onChange={(e) => handleChange("volatilityAdjustmentEnabled", e.target.checked)} />
-                <select value={formData.volatilityAdjustmentStrength} onChange={(e) => handleChange("volatilityAdjustmentStrength", e.target.value as VolatilityStrength)}>
-                  <option value="low">Low Sensitivity</option>
-                  <option value="medium">Medium Sensitivity</option>
-                  <option value="high">High Sensitivity</option>
-                </select>
-              </div>
-            </div>
           </div>
         </div>
 
         {/* MANUAL MODE SETTINGS */}
-        <div className={`settings-group-wrapper ${formData.goldZoneMode === 'Manual' ? 'active' : 'disabled'}`}>
-          <h4>Manual Override Settings</h4>
+        <div className={`settings-group-wrapper ${formData.goldZoneMode === 'MANUAL' ? 'active' : 'disabled'}`}>
+          <h4 className="section-title">B. MANUAL MODE SETTINGS</h4>
           <div className="settings-grid">
             <div className="setting-group">
-              <label>Manual Starter Buy</label>
+              <label>Starter Buy Price Range</label>
               <div className="range-inputs">
                 <input type="number" step="1" value={formData.goldStarterLower} onChange={(e) => handleNumberChange("goldStarterLower", e.target.value)} />
                 <span>to</span>
@@ -108,7 +104,7 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
               </div>
             </div>
             <div className="setting-group">
-              <label>Manual Aggressive Add</label>
+              <label>Aggressive Add Price Range</label>
               <div className="range-inputs">
                 <input type="number" step="1" value={formData.goldAggressiveLower} onChange={(e) => handleNumberChange("goldAggressiveLower", e.target.value)} />
                 <span>to</span>
@@ -142,10 +138,6 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
                 <input type="number" step="0.1" value={formData.dxyStrong} onChange={(e) => handleNumberChange("dxyStrong", e.target.value)} />
               </div>
             </div>
-            <div className="setting-group">
-              <label>Yield Flat Threshold (bps)</label>
-              <input type="number" step="0.01" value={formData.realYieldFlatThreshold} onChange={(e) => handleNumberChange("realYieldFlatThreshold", e.target.value)} />
-            </div>
           </div>
         </div>
       </div>
@@ -155,6 +147,17 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
       </div>
 
       <style jsx>{`
+        .settings-section {
+          transition: border-color 0.3s ease;
+          border-left: 4px solid transparent;
+          padding-left: 1rem;
+        }
+        .mode-auto {
+          border-left-color: #3b82f6;
+        }
+        .mode-manual {
+          border-left-color: #f59e0b;
+        }
         .settings-header {
           display: flex;
           justify-content: space-between;
@@ -162,6 +165,14 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
           margin-bottom: 1.5rem;
           padding-bottom: 1rem;
           border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          flex-wrap: wrap;
+          gap: 1rem;
+        }
+        @media (max-width: 640px) {
+            .settings-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
         }
         .mode-selector {
           display: flex;
@@ -190,17 +201,24 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
           transition: all 0.2s ease;
         }
         .settings-group-wrapper.disabled {
-          opacity: 0.4;
+          opacity: 0.3;
           pointer-events: none;
-          filter: grayscale(1);
+          filter: grayscale(0.8);
         }
-        .settings-group-wrapper h4 {
+        .section-title {
           margin-top: 0;
           margin-bottom: 1rem;
           color: #94a3b8;
           font-size: 0.85rem;
           text-transform: uppercase;
           letter-spacing: 0.05em;
+          font-weight: 700;
+        }
+        .mode-auto .active .section-title {
+          color: #60a5fa;
+        }
+        .mode-manual .active .section-title {
+          color: #fbbf24;
         }
         .range-inputs {
           display: flex;
@@ -211,6 +229,7 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
           display: flex;
           align-items: center;
           gap: 1rem;
+          flex-wrap: wrap;
         }
         .checkbox-group select {
            background: #1e293b;
@@ -229,6 +248,25 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
           width: 1rem;
           height: 1rem;
           cursor: pointer;
+        }
+        .save-btn {
+          background: #3b82f6;
+          color: white;
+          border: none;
+          padding: 0.6rem 1.2rem;
+          border-radius: 6px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        .save-btn:hover {
+          background: #2563eb;
+        }
+        .mode-manual .save-btn {
+          background: #f59e0b;
+        }
+        .mode-manual .save-btn:hover {
+          background: #d97706;
         }
       `}</style>
     </div>

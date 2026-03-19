@@ -9,6 +9,10 @@ interface MetricCardProps {
   dailyChangeText: string;
   trendDirection: string;
   history: number[];
+  subtitle?: {
+    text: string;
+    type: "AUTO" | "MANUAL";
+  };
 }
 
 export function MetricCard({
@@ -18,6 +22,7 @@ export function MetricCard({
   dailyChangeText,
   trendDirection,
   history,
+  subtitle,
 }: MetricCardProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -58,11 +63,16 @@ export function MetricCard({
       : "stat-neutral";
 
   return (
-    <div className="metric-card">
+    <div className={`metric-card ${subtitle ? `mode-${subtitle.type.toLowerCase()}` : ''}`}>
       <div className="metric-header">
         <span>{title}</span>
+        {subtitle && (
+          <span className="mode-badge">
+            {subtitle.text}
+          </span>
+        )}
       </div>
-      <div className="metric-value">{value}</div>
+      <div className="metric-value" style={{ fontSize: "var(--metric-value-size, 2.5rem)" }}>{value}</div>
       <div
         style={{
           height: "40px",

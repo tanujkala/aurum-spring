@@ -131,8 +131,9 @@ export default function Dashboard() {
         const scoreCrossedThreshold = lastEntry && getThreshold(lastEntry.compositeScore) !== getThreshold(result.compositeScore);
 
         if (stateChanged || scoreCrossedThreshold) {
-          const alertMsg = `[ALERT] ${stateChanged ? "STATE CHANGE" : "THRESHOLD CROSS"}: ${result.state} | Score: ${result.compositeScore.toFixed(1)} | Gold: ${newData.goldPrice} | Drawdown: ${result.drawdownPct.toFixed(1)}% | Zone: ${result.currentGoldZone} | High: ${result.recentHigh}`;
+          const alertMsg = `Aurum Spring Alert: ${result.state} (${result.zoneSource} Mode) | Score: ${result.compositeScore.toFixed(1)} | Gold: ${newData.goldPrice} | Zone Source: ${result.zoneSource}`;
           console.log(alertMsg);
+          // Optional: browser notification or alert toast
         }
         const updated = [newEntry, ...prev].slice(0, 50);
         localStorage.setItem("aurum-history", JSON.stringify(updated));
@@ -194,6 +195,10 @@ export default function Dashboard() {
           dailyChangeText={`${Math.abs(currentData.goldPrice - (goldHistory[goldHistory.length - 1] ?? currentData.goldPrice)).toFixed(2)}`}
           trendDirection="5-day trend"
           history={[...goldHistory, currentData.goldPrice]}
+          subtitle={{
+            text: `Source: ${evaluation.zoneSource}`,
+            type: evaluation.zoneSource
+          }}
         />
         <MetricCard
           title="DXY"

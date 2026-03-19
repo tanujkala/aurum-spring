@@ -157,20 +157,26 @@ export const evaluateState = (
   
   const zoneSource = settings.goldZoneMode;
   
-  // Handle Manual Mode Override for goldScore/currentGoldZone if needed
+  // Define Final Gold Metrics based on Mode
   let finalGoldScore = goldScore;
   let finalGoldZone = currentGoldZone;
 
-  if (settings.goldZoneMode === "Manual") {
-    if (goldPrice >= settings.goldAggressiveLower && goldPrice <= settings.goldAggressiveUpper) {
-      finalGoldScore = 100;
-      finalGoldZone = "Aggressive Add (Manual)";
-    } else if (goldPrice >= settings.goldStarterLower && goldPrice <= settings.goldStarterUpper) {
+  if (settings.goldZoneMode === "MANUAL") {
+    if (goldPrice >= settings.goldStarterLower && goldPrice <= settings.goldStarterUpper) {
       finalGoldScore = 85;
-      finalGoldZone = "Starter Buy (Manual)";
+      finalGoldZone = "Starter Buy";
+    } else if (goldPrice >= settings.goldAggressiveLower && goldPrice <= settings.goldAggressiveUpper) {
+      finalGoldScore = 100;
+      finalGoldZone = "Aggressive Add";
+    } else if (goldPrice > settings.goldStarterUpper) {
+      finalGoldScore = 10;
+      finalGoldZone = "Extended";
+    } else if (goldPrice < settings.goldAggressiveLower) {
+      finalGoldScore = 90;
+      finalGoldZone = "Panic Extension";
     } else {
       finalGoldScore = 10;
-      finalGoldZone = "Outside Manual Zones";
+      finalGoldZone = "Outside Zones";
     }
   }
 
