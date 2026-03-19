@@ -10,21 +10,6 @@ import { RuleBreakdown } from "@/components/RuleBreakdown";
 import { HistoryTable } from "@/components/HistoryTable";
 import { SettingsPanel } from "@/components/SettingsPanel";
 
-// ─── Simple historical series generator (client-side only) ────────────────────
-function randomVariance(base: number, percent: number): number {
-  const variance = base * percent;
-  return base + (Math.random() * variance * 2 - variance);
-}
-
-function generateHistory(seed: number, days: number, variance: number): number[] {
-  let current = seed;
-  const series: number[] = [];
-  for (let i = 0; i < days; i++) {
-    series.unshift(Math.round(current * 100) / 100);
-    current = randomVariance(current, variance);
-  }
-  return series;
-}
 
 export default function Dashboard() {
   const [currentData, setCurrentData] = useState<MarketData | null>(null);
@@ -55,8 +40,10 @@ export default function Dashboard() {
     const savedSettings = localStorage.getItem("aurum-settings");
     if (savedSettings) {
       const parsed = JSON.parse(savedSettings);
-      setSettings(parsed);
-      settingsRef.current = parsed;
+      // Migration: merge with defaultSettings to ensure new fields are present
+      const migrated = { ...defaultSettings, ...parsed };
+      setSettings(migrated);
+      settingsRef.current = migrated;
     }
     const savedHistory = localStorage.getItem("aurum-history");
     if (savedHistory) {
@@ -83,18 +70,17 @@ export default function Dashboard() {
       const allLive = data.live.gold && data.live.dxy && data.live.yield;
       setIsLive(allLive);
 
-      // Seed history on first load
-      if (goldHistoryRef.current.length === 0) {
-        const gH = generateHistory(data.goldPrice, 10, 0.005);
-        const dH = generateHistory(data.dxy, 10, 0.002);
-        const yH = generateHistory(data.realYield, 10, 0.005);
-        goldHistoryRef.current = gH;
-        dxyHistoryRef.current = dH;
-        yieldHistoryRef.current = yH;
-        setGoldHistory(gH);
-        setDxyHistory(dH);
-        setYieldHistory(yH);
-      }
+      // Update history from API
+      const gH = data.goldHistory || [];
+      const dH = data.dxyHistory || [];
+      const yH = data.yieldHistory || [];
+      
+      goldHistoryRef.current = gH;
+      dxyHistoryRef.current = dH;
+      yieldHistoryRef.current = yH;
+      setGoldHistory(gH);
+      setDxyHistory(dH);
+      setYieldHistory(yH);
 
       const newData: MarketData = {
         timestamp: data.timestamp,
@@ -121,35 +107,39 @@ export default function Dashboard() {
         dxy: newData.dxy,
         realYield: newData.realYield,
         state: result.state,
-        confidence: result.confidence,
+        compositeScore: result.compositeScore,
+        marketPhase: result.marketPhase,
         reason: result.reason,
+        recentHigh: result.recentHigh,
+        drawdownPct: result.drawdownPct,
+        goldZone: result.currentGoldZone,
+        zoneSource: result.zoneSource
       };
 
       setTriggerHistory((prev) => {
-        if (prev.length > 0 && prev[0].state !== result.state) {
-          console.log(`[ALERT] State changed to ${result.state} at ${new Date().toISOString()}`);
+        const lastEntry = prev[0];
+        const stateChanged = lastEntry && lastEntry.state !== result.state;
+        
+        const getThreshold = (score: number) => {
+          if (score < 40) return 0;
+          if (score < 60) return 40;
+          if (score < 75) return 60;
+          if (score < 85) return 75;
+          return 85;
+        };
+
+        const scoreCrossedThreshold = lastEntry && getThreshold(lastEntry.compositeScore) !== getThreshold(result.compositeScore);
+
+        if (stateChanged || scoreCrossedThreshold) {
+          const alertMsg = `[ALERT] ${stateChanged ? "STATE CHANGE" : "THRESHOLD CROSS"}: ${result.state} | Score: ${result.compositeScore.toFixed(1)} | Gold: ${newData.goldPrice} | Drawdown: ${result.drawdownPct.toFixed(1)}% | Zone: ${result.currentGoldZone} | High: ${result.recentHigh}`;
+          console.log(alertMsg);
         }
         const updated = [newEntry, ...prev].slice(0, 50);
         localStorage.setItem("aurum-history", JSON.stringify(updated));
         return updated;
       });
 
-      // Slide history windows
-      setGoldHistory((prev) => {
-        const next = [...prev.slice(1), data.goldPrice];
-        goldHistoryRef.current = next;
-        return next;
-      });
-      setDxyHistory((prev) => {
-        const next = [...prev.slice(1), data.dxy];
-        dxyHistoryRef.current = next;
-        return next;
-      });
-      setYieldHistory((prev) => {
-        const next = [...prev.slice(1), data.realYield];
-        yieldHistoryRef.current = next;
-        return next;
-      });
+      // History is already updated above for the next run
     } catch (err) {
       console.error("[Dashboard] Failed to fetch /api/market:", err);
       setIsLive(false);
@@ -225,13 +215,7 @@ export default function Dashboard() {
 
       <div className="middle-grid">
         <ActionCard evaluation={evaluation} />
-        <RuleBreakdown
-          current={currentData}
-          goldHistory={goldHistory}
-          dxyHistory={dxyHistory}
-          yieldHistory={yieldHistory}
-          settings={settings}
-        />
+        <RuleBreakdown evaluation={evaluation} />
       </div>
 
       <HistoryTable history={triggerHistory} />

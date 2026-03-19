@@ -31,54 +31,40 @@ async function fetchGold(): Promise<number> {
   return Math.round(json.price * 100) / 100;
 }
 
-async function fetchYield(): Promise<number> {
+async function fetchYieldHistory(): Promise<number[]> {
   const url = [
     "https://api.stlouisfed.org/fred/series/observations",
     `?series_id=DFII10`,
     `&api_key=${FRED_API_KEY}`,
     `&file_type=json`,
     `&sort_order=desc`,
-    `&limit=10`,
+    `&limit=30`,
   ].join("");
 
   const res = await fetch(url, { next: { revalidate: 0 } });
   if (!res.ok) throw new Error(`FRED HTTP ${res.status}`);
   const json = await res.json();
-  const latest = json.observations?.find(
-    (o: { value: string }) => o.value !== "."
-  );
-  if (!latest) throw new Error("FRED: no valid observation");
-  return Math.round(parseFloat(latest.value) * 100) / 100;
+  const values = json.observations
+    ?.filter((o: { value: string }) => o.value !== ".")
+    .map((o: { value: string }) => Math.round(parseFloat(o.value) * 100) / 100)
+    .reverse(); // Back to chronological order
+  
+  if (!values || values.length === 0) throw new Error("FRED: no valid observations");
+  return values;
 }
 
-async function fetchDXY(): Promise<number> {
-  const url = `https://api.twelvedata.com/price?symbol=EUR/USD,USD/JPY,GBP/USD,USD/CAD,USD/SEK,USD/CHF&apikey=${TWELVEDATA_KEY}`;
+async function fetchTwelveDataHistory(symbol: string, outputsize: number = 90): Promise<number[]> {
+  const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=1day&outputsize=${outputsize}&apikey=${TWELVEDATA_KEY}`;
   const res = await fetch(url, { next: { revalidate: 0 } });
-  if (!res.ok) throw new Error(`TwelveData HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`TwelveData History HTTP ${res.status}`);
   const json = await res.json();
 
   if (json.code && json.status === "error") throw new Error(json.message);
-  if (!json["EUR/USD"] || !json["USD/JPY"])
-    throw new Error("TwelveData: missing FX data");
+  if (!json.values) throw new Error(`TwelveData: no historical values for ${symbol}`);
 
-  const eurusd = parseFloat(json["EUR/USD"].price);
-  const usdjpy = parseFloat(json["USD/JPY"].price);
-  const gbpusd = parseFloat(json["GBP/USD"].price);
-  const usdcad = parseFloat(json["USD/CAD"].price);
-  const usdsek = parseFloat(json["USD/SEK"].price);
-  const usdchf = parseFloat(json["USD/CHF"].price);
-
-  // Official ICE DXY Formula
-  const dxy =
-    50.14348112 *
-    Math.pow(eurusd, -0.576) *
-    Math.pow(usdjpy, 0.136) *
-    Math.pow(gbpusd, -0.119) *
-    Math.pow(usdcad, 0.091) *
-    Math.pow(usdsek, 0.042) *
-    Math.pow(usdchf, 0.036);
-
-  return Math.round(dxy * 1000) / 1000;
+  return json.values
+    .map((v: { close: string }) => Math.round(parseFloat(v.close) * 100) / 100)
+    .reverse(); // Back to chronological order
 }
 
 // ─── Route Handler ────────────────────────────────────────────────────────────
@@ -86,39 +72,49 @@ async function fetchDXY(): Promise<number> {
 export async function GET() {
   const now = Date.now();
 
-  // Return cached data if fresh
+  // Return cached data if fresh (optional: history might be bigger, but CACHE_TTL is short)
   if (cache && now - cacheTime < CACHE_TTL_MS) {
     return NextResponse.json({ ...cache, cached: true });
   }
 
-  // Fetch all 3 in parallel
-  const [goldResult, yieldResult, dxyResult] = await Promise.allSettled([
+  // Fetch everything in parallel
+  const [
+    goldSpotResult,
+    yieldHistResult,
+    goldHistResult,
+    dxyHistResult
+  ] = await Promise.allSettled([
     fetchGold(),
-    fetchYield(),
-    fetchDXY(),
+    fetchYieldHistory(),
+    fetchTwelveDataHistory("XAU/USD", 90),
+    fetchTwelveDataHistory("DXY", 90),
   ]);
 
-  const goldPrice =
-    goldResult.status === "fulfilled" ? goldResult.value : cache?.goldPrice ?? 4671.8;
-  const realYield =
-    yieldResult.status === "fulfilled" ? yieldResult.value : cache?.realYield ?? 2.0;
-  const dxy =
-    dxyResult.status === "fulfilled" ? dxyResult.value : cache?.dxy ?? 100.0;
+  const goldPrice = goldSpotResult.status === "fulfilled" ? goldSpotResult.value : cache?.goldPrice ?? 4671.8;
+  const yieldHistory = yieldHistResult.status === "fulfilled" ? yieldHistResult.value : (cache as any)?.yieldHistory ?? [2.0];
+  const goldHistory = goldHistResult.status === "fulfilled" ? goldHistResult.value : (cache as any)?.goldHistory ?? [4671.8];
+  const dxyHistory = dxyHistResult.status === "fulfilled" ? dxyHistResult.value : (cache as any)?.dxyHistory ?? [100.0];
 
-  const data: CachedData = {
+  const latestYield = yieldHistory[yieldHistory.length - 1];
+  const latestDxy = dxyHistory[dxyHistory.length - 1];
+
+  const data = {
     goldPrice,
-    dxy,
-    realYield,
+    dxy: latestDxy,
+    realYield: latestYield,
+    goldHistory,
+    dxyHistory,
+    yieldHistory,
     timestamp: new Date().toISOString(),
     live: {
-      gold: goldResult.status === "fulfilled",
-      dxy: dxyResult.status === "fulfilled",
-      yield: yieldResult.status === "fulfilled",
+      gold: goldSpotResult.status === "fulfilled",
+      dxy: dxyHistResult.status === "fulfilled",
+      yield: yieldHistResult.status === "fulfilled",
     },
   };
 
   // Update cache
-  cache = data;
+  cache = data as any;
   cacheTime = now;
 
   return NextResponse.json({ ...data, cached: false });

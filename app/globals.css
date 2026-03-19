@@ -249,6 +249,19 @@ h1, h2, h3, h4, p {
   font-weight: 600;
 }
 
+.market-phase-badge {
+    background: var(--surface-hover);
+    border: 1px solid var(--border-color);
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+
 /* History Table */
 .history-section, .settings-section {
   background: var(--surface-color);
@@ -285,6 +298,50 @@ th {
 
 tr:hover td {
   background: var(--surface-hover);
+}
+
+.reason-cell {
+  position: relative;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-secondary);
+  font-style: italic;
+  font-size: 0.8rem;
+}
+
+.reason-cell:hover {
+  color: var(--text-primary);
+  cursor: help;
+}
+
+.reason-tooltip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  transform: translateY(-8px);
+  background-color: var(--surface-color);
+  color: var(--text-primary);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  width: 320px;
+  white-space: normal;
+  z-index: 100;
+  transition: all 0.2s ease;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  font-style: normal;
+  line-height: 1.5;
+}
+
+.reason-cell:hover .reason-tooltip {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(-12px);
 }
 
 /* Settings Form */
